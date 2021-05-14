@@ -1,24 +1,24 @@
 import React, {Component} from 'react';
 import './Home.css';
-import Header from '../../common/Header';
+import Header from '../../common/header/Header';
 import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import IconButton from '@material-ui/core/IconButton';
 import CardHeader from '@material-ui/core/CardHeader';
 import CardMedia from '@material-ui/core/CardMedia';
 import CardContent from '@material-ui/core/CardContent';
+import CardActions from '@material-ui/core/CardActions';
+import IconButton from '@material-ui/core/IconButton';
 import Avatar from '@material-ui/core/Avatar';
 import {withStyles} from '@material-ui/core/styles';
 import FavoriteIconBorder from '@material-ui/icons/FavoriteBorder';
-import FormControl from '@material-ui/core/FormControl';
 import FavoriteIconFill from '@material-ui/icons/Favorite';
 import Typography from '@material-ui/core/Typography';
+import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
 import Button from '@material-ui/core/Button';
 import GridList from '@material-ui/core/GridList';
-import GridListTile from '@material-ui/core/GridListTile'; 
-import profileImage from "../../assets/upgrad.svg"
+import GridListTile from '@material-ui/core/GridListTile';
+import {constants} from '../../common/utils'
 
 const styles =  theme => ({
   card: {
@@ -29,7 +29,7 @@ const styles =  theme => ({
   },
   media: {
     height:0,
-    paddingTop: '56.25%',
+    paddingTop: '56.25%', // 16:9
   },
   formControl: {
     display:'flex',
@@ -39,7 +39,7 @@ const styles =  theme => ({
   },
   comment:{
     display:'flex',
-    alignItems:'center',
+    alignItems:'center'
   },
   hr:{
     marginTop:'10px',
@@ -68,63 +68,17 @@ class Home extends Component{
     this.state = {
       data: [],
       filteredData:[],
-      userData:{},
+      userData:[],
       likeSet:new Set(),
       comments:{},
-      currrentComment:""
+      currrentComment:"",
+      userInfo:[],
+      likes: 0
     }
   }
 
   componentDidMount(){
-    let that = this;
-    let url = `https://graph.instagram.com/me/media?fields=id,caption&access_token=${sessionStorage.getItem('access-token')}`;
-    
-    return fetch(url,{
-      method:'GET',
-    }).then((response) =>{
-        return response.json();
-    }).then((jsonResponse) =>{
-      const mediaArray = jsonResponse.data;
-      const mediaInfo = []
-
-    return  Promise.all(
-          mediaArray.map(x => {
-            return new Promise((resolve) => {
-              let url = `https://graph.instagram.com/${x.id}?fields=id,media_type,media_url,username,timestamp&access_token=${sessionStorage.getItem('access-token')}`;
-              fetch(url,{
-                method:'GET',
-              })
-                  .then(response => {
-                    return new Promise(() => {
-                      response.json()
-                          .then(media => {
-                            mediaInfo.push(media)
-                            resolve()
-                          })
-                    })
-                  })
-            })
-          })
-      )
-          .then(() => {
-            mediaInfo.forEach(media=>{
-              const m = mediaArray.filter(x=>x.id===media.id);
-              media['caption'] = m[0].caption;
-              media['likes_count'] =88; 
-
-              let regex = /#(\w+)/g;
-              media['hashtags'] =  media.caption.match(regex);
-              media['hashtags'] =   media['hashtags']?media['hashtags'].join(' ') : ''
-              media.caption  = media.caption.replace(/#([^\s]*)/gm, '');
-            })
-            that.setState({
-              data:mediaInfo,
-              filteredData:mediaInfo
-            });
-          })
-
-    }).catch((error) => {
-    });
+    this.getBaseUserInfo();
   }
 
   render(){
@@ -132,18 +86,19 @@ class Home extends Component{
     return(
       <div>
         <Header
-          userProfileUrl={profileImage}
+          userProfileUrl="profile.png"
           screen={"Home"}
           searchHandler={this.onSearchEntered}
           handleLogout={this.logout}
           handleAccount={this.navigateToAccount}/>
         <div className={classes.grid}>
           <GridList className={classes.gridList} cellHeight={'auto'}>
-            {this.state.filteredData.map(item => (
+            {this.state.filteredData.map((item, index) => (
               <GridListTile key={item.id}>
                 <HomeItem
                   classes={classes}
                   item={item}
+                  userInfo={this.state.userInfo}
                   onLikedClicked={this.likeClickHandler}
                   onAddCommentClicked={this.addCommentClickHandler}
                   commentChangeHandler={this.commentChangeHandler}
@@ -158,40 +113,15 @@ class Home extends Component{
 
   onSearchEntered = (value) =>{
     console.log('search value', value);
-    let filteredData = this.state.data;
+    let filteredData = this.state.userInfo;
     filteredData = filteredData.filter((data) =>{
       let string = data.caption.toLowerCase();
       let subString = value.toLowerCase();
       return string.includes(subString);
     })
     this.setState({
-      filteredData
+      userInfo: filteredData
     })
-  }
-
-  likeClickHandler = (id) =>{
-    var foundItem = this.state.data.find((item) => {
-      return item.id === id;
-    })
-    if (typeof foundItem !== undefined) {
-      if (!this.state.likeSet.has(id)) {
-        foundItem.likes_count++;
-        this.setState(({likeSet}) => ({
-          likeSet:new Set(likeSet.add(id))
-        }))
-
-      }else {
-        foundItem.likes_count--;
-        this.setState(({likeSet}) =>{
-          const newLike = new Set(likeSet);
-          newLike.delete(id);
-
-          return {
-            likeSet:newLike
-          };
-        });
-      }
-    }
   }
 
   addCommentClickHandler = (id)=>{
@@ -209,7 +139,6 @@ class Home extends Component{
       },
       currentComment:''
     })
-    sessionStorage.setItem(id+'comment',JSON.stringify([...commentList]));
   }
 
 
@@ -219,7 +148,40 @@ class Home extends Component{
     });
   }
 
-  
+  getBaseUserInfo = () => {
+    let that = this;
+    let url = `${constants.userInfoUrl}=${sessionStorage.getItem('access-token')}`;
+    return fetch(url,{
+      method:'GET',
+    }).then((response) =>{
+        return response.json();
+    }).then((jsonResponse) =>{
+      that.setState({
+        userInfo:jsonResponse.data
+      });
+      this.state.userInfo.map((data, index) => (
+          this.getMediaData(data.id)
+      ));
+    }).catch((error) => {
+      console.log('error user data',error);
+    });
+  }
+
+  getMediaData = (id) => {
+    let that = this;
+    let url = `${constants.userMediaUrl}/${id}?fields=id,media_type,media_url,username,timestamp&access_token=&access_token=${sessionStorage.getItem('access-token')}`;
+    return fetch(url,{
+      method:'GET',
+    }).then((response) =>{
+        return response.json();
+    }).then((jsonResponse) =>{
+      that.setState({
+        filteredData: this.state.filteredData.concat(jsonResponse)
+      })
+    }).catch((error) => {
+      console.log('error user data',error);
+    });
+  }
 
   logout = () => {
     sessionStorage.clear();
@@ -237,90 +199,124 @@ class HomeItem extends Component{
     this.state = {
       isLiked : false,
       comment:'',
+      likes: 3
     }
   }
 
   render(){
-    const {classes, item, comments} = this.props;
+    const {classes, item, userInfo, comments} = this.props;
+
+    // Logic to calculate the time of instagram post and display time format of the posted image
+
     let createdTime = new Date(item.timestamp);
     let yyyy = createdTime.getFullYear();
-    let mm = createdTime.getMonth() + 1 ;
-    mm = mm>=10?mm:'0'+mm;
-    let dd = createdTime.getDate() >=10 ?createdTime.getDate() : '0'+ createdTime.getDate() ;
-    let HH = createdTime.getHours() >=10 ?createdTime.getHours() : '0'+createdTime.getHours() ;
-    let MM = createdTime.getMinutes()>=10?createdTime.getMinutes() : '0'+createdTime.getMinutes();
-    let ss = createdTime.getSeconds()>=10?createdTime.getSeconds() : '0'+createdTime.getSeconds();
+    let mm = createdTime.getMonth() + 1;
+    let dd = createdTime.getDate();
+
+    let HH = createdTime.getHours();
+    let MM = createdTime.getMinutes();
+    let ss = createdTime.getSeconds();
+
     let time = dd+"/"+mm+"/"+yyyy+" "+HH+":"+MM+":"+ss;
 
+    // Fetching the caption of the image via the API endpoint result
+    let captionText = '';
+    let likeCount = this.state.likes;
+    userInfo.forEach(data => {
+      if (data.id === item.id) {
+        captionText = data.caption;
+      }
+    });
 
-    return(
-      <div className="home-item-main-container">
-        <Card className={classes.card}>
-          <CardHeader
-            avatar={
-              <Avatar alt="User Profile Pic" src={profileImage} className={classes.avatar}/>
-            }
-            title={item.username}
-            subheader={time}
-          />
-          <CardContent>
-            <CardMedia
-              className={classes.media}
-              image={item.media_url}
-              title={item.caption}
-            />
-            <div  className={classes.hr}>
-              <Typography component="p">
-                {item.caption}
-              </Typography>
-              <Typography style={{color:'#4dabf5'}} component="p" >
-                {item.hashtags}
-              </Typography>
-            </div>
-          </CardContent>
+    if(captionText === '') {
+      return(<div className="home-item-main-container"></div>);
+    } else {
+      return(
+          <div className="home-item-main-container">
+            <Card className={classes.card}>
+              <CardHeader
+                  avatar={
+                    <Avatar alt="User Profile Pic" src="profile.png" className={classes.avatar}/>
+                  }
+                  title={item.username}
+                  subheader={time}
+              />
 
-            <CardActions>
-              <IconButton aria-label="Add to favorites" onClick={this.onLikeClicked.bind(this,item.id)}>
-                {this.state.isLiked && <FavoriteIconFill style={{color:'#F44336'}}/>}
-                {!this.state.isLiked && <FavoriteIconBorder/>}
-              </IconButton>
-              <Typography component="p">
-                {item.likes_count} Likes
-              </Typography>
-            </CardActions>
+              { /* Media URL value is fetched via the API endpoint and is diplay below using item.media_url query */ }
+              <CardContent>
+                <CardMedia
+                    className={classes.media}
+                    image={item.media_url}
+                    title=""
+                />
+                <div className={classes.hr}>
+                  <Typography component="p">
 
-            <CardContent>
-            {comments.hasOwnProperty(item.id) && comments[item.id].map((comment, index)=>{
-              return(
-                <div key={index} className="row">
-                  <Typography component="p" style={{fontWeight:'bold' }} >
-                    {sessionStorage.getItem('username')}:
+                    { /*  Fetching the caption of the image via the API endpoint result as per the logic written above */ }
+                    {captionText}
                   </Typography>
-                  <Typography component="p" style={{marginLeft:'4px' }} >
-                    {comment}
+                  <Typography style={{color:'#4dabf5'}} component="p" >
+                    { /*  Hard coding of the hashtags */ }
+                    #Nature #Earth #Peace
                   </Typography>
                 </div>
-              )
-            })}
-            <div className={classes.formControl}>
-              <FormControl style={{flexGrow:1}}>
-                <InputLabel htmlFor="comment">Add Comment</InputLabel>
-                <Input id="comment" value={this.state.comment} onChange={this.commentChangeHandler}/>
-              </FormControl>
-              <FormControl>
-                <Button style={{marginLeft:'1rem' }} onClick={this.onAddCommentClicked.bind(this,item.id)}
-                   variant="contained" color="primary">
-                  ADD
-                </Button>
-              </FormControl>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+              </CardContent>
+              <CardActions>
+                <IconButton aria-label="Add to favorites" onClick={this.onLikeClicked.bind(this,item.id)}>
+                  {this.state.isLiked && <FavoriteIconFill style={{color:'#F44336'}}/>}
+                  {!this.state.isLiked && <FavoriteIconBorder/>}
+                </IconButton>
+                <Typography component="p">
+
+                  { /*  likeCount value is fetched by the Logic written in the onLikeClicked() method to display the number of likes of each post */ }
+                  {likeCount} likes
+                </Typography>
+              </CardActions>
+
+              <CardContent>
+                {comments.hasOwnProperty(item.id) && comments[item.id].map((comment, index)=>{
+                  return(
+                      <div key={index} className="row">
+                        <Typography component="p" style={{fontWeight:'bold'}}>
+                          {sessionStorage.getItem('username')}:
+                        </Typography>
+                        <Typography component="p" >
+                          {comment}
+                        </Typography>
+                      </div>
+                  )
+                })}
+                <div className={classes.formControl}>
+                  <FormControl style={{flexGrow:1}}>
+                    <InputLabel htmlFor="comment">Add a comment</InputLabel>
+                    <Input id="comment" value={this.state.comment} onChange={this.commentChangeHandler}/>
+                  </FormControl>
+                  <FormControl class="commentAdd">
+                    <Button onClick={this.onAddCommentClicked.bind(this,item.id)}
+                            variant="contained" color="primary">
+                      ADD
+                    </Button>
+                  </FormControl>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+      )
+    }
   }
 
   onLikeClicked = (id) => {
+    //  converting the likes symbol color from white to pink and also incrementing/decrementing the number of likes
+
+    if (!this.state.isLiked) {
+      this.setState({
+        likes: this.state.likes + 1
+      })
+    } else {
+      this.setState({
+        likes: this.state.likes - 1
+      })
+    }
     if (this.state.isLiked) {
       this.setState({
         isLiked:false
@@ -330,7 +326,6 @@ class HomeItem extends Component{
         isLiked:true
       });
     }
-    this.props.onLikedClicked(id)
   }
 
   commentChangeHandler = (e) => {
@@ -341,6 +336,8 @@ class HomeItem extends Component{
   }
 
   onAddCommentClicked = (id) => {
+    
+
     if (this.state.comment === "" || typeof this.state.comment === undefined) {
       return;
     }

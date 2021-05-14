@@ -6,9 +6,9 @@ import Typography from '@material-ui/core/Typography';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
-import FormHelperText from '@material-ui/core/FormHelperText'; 
+import FormHelperText from '@material-ui/core/FormHelperText';
 
-import Header from '../../common/Header';
+import Header from '../../common/header/Header';
 import './Login.css'
 
 const styles = {
@@ -39,40 +39,38 @@ class Login extends Component {
         };
     }
 
-    loginClickHandler = () => { 
+    loginClickHandler = () => {
         this.setState({ incorrectUsernamePassword: "dispNone" });
-        if(this.state.username === "") { 
-            this.setState({ usernameRequired: "dispBlock" })
-        } else { 
-            this.setState({ usernameRequired: "dispNone" });
-        }
-        if(this.state.password === "") {
-            this.setState({ passwordRequired: "dispBlock" })
-        } else { 
-            this.setState({ passwordRequired: "dispNone" });
-        }
+        this.state.username === "" ? this.setState({ usernameRequired: "dispBlock" }) : this.setState({ usernameRequired: "dispNone" });
+        this.state.password === "" ? this.setState({ passwordRequired: "dispBlock" }) : this.setState({ passwordRequired: "dispNone" });
 
-        if (this.state.username === "" || this.state.password === "") { 
-            return;
-        }
+        if (this.state.username === "" || this.state.password === "") { return }
 
-        if (this.state.username === "adarsha" && this.state.password === "adarsha") {
-            sessionStorage.setItem('username','rdAdarsha');
-            sessionStorage.setItem('access-token', 'IGQVJXQmROVnlHd1VHT1JTMlFVSlhBOHhmSkZANSlRpNkk1QXItT19lY1JoX19ESFV0NUFrU3dYVFljTGY1T2I2NHhJWF9MWW1KYXFzdXo0NkVLMVlnVXpRbmtaN1JyWUMzNDhkYVRXa3AwZAlRiRUFRVQZDZD');
+        // Default username and password is hardcoded .Access token is as per obtained from the Instagram APIs
+
+        if (this.state.username === "msharma25" && this.state.password === "adieu@123") {
+            sessionStorage.setItem('username','msharma25');
+            sessionStorage.setItem('access-token', 'IGQVJVMG9HU1BsNWNOMU1lWHdYYmtObVhYeGFyMU54bVJjdlgzUVlDQlc0UlI1NFZAlRGV5aF95bnpFSm4tQUFfRGYzZAXRNVU8zRzVvdkdRenZA2MGZAidDhINFRyTGpRd2dfMWg5eG9IWHluMm1mLUVfMG94eDNONUhQSEdR');
             this.setState({ loggedIn: true });
-            this.props.history.push('/home');
+
+            // After login is successful, navigate to Home page
+            this.navigateToHome();
         } else {
             this.setState({ incorrectUsernamePassword: "dispBlock" });
         }
     }
-    PasswordChangeHandler = (e) => {
-        this.setState({ password: e.target.value })
-    } 
-    UsernameChangeHandler = (e) => {
+
+    navigateToHome = () =>{
+      this.props.history.push('/home');
+    }
+
+    inputUsernameChangeHandler = (e) => {
         this.setState({ username: e.target.value })
     }
 
-    
+    inputPasswordChangeHandler = (e) => {
+        this.setState({ password: e.target.value })
+    }
 
     render() {
         return (
@@ -84,12 +82,12 @@ class Login extends Component {
                         <Typography style={styles.title}> LOGIN </Typography><br />
                         <FormControl required style={{width: '100%'}}>
                             <InputLabel htmlFor="username"> Username </InputLabel>
-                            <Input id="username" type="text" username={this.state.username} onChange={this.UsernameChangeHandler} />
+                            <Input id="username" type="text" username={this.state.username} onChange={this.inputUsernameChangeHandler} />
                             <FormHelperText className={this.state.usernameRequired}><span className="red">required</span></FormHelperText>
                         </FormControl><br /><br />
                         <FormControl required style={{width: '100%'}}>
                             <InputLabel htmlFor="password"> Password </InputLabel>
-                            <Input id="password" type="password" onChange={this.PasswordChangeHandler} />
+                            <Input id="password" type="password" onChange={this.inputPasswordChangeHandler} />
                             <FormHelperText className={this.state.passwordRequired}><span className="red">required</span></FormHelperText>
                         </FormControl><br /><br />
                         <div className={this.state.incorrectUsernamePassword}><span className="red"> Incorrect username and/or password </span></div><br />
