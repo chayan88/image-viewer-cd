@@ -1,29 +1,10 @@
-.home-item-main-container{
-  margin-top: 10px;
-  margin-left: 10px;
-  margin-bottom: 10px;
-  margin-right: 10px;
-}
-.home-item-profile-container{
+.posts-grid-container {
+  margin: 20px;
   display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-}
-.home-item-profile-head{
-  display: flex;
-  flex-direction: column;
+  flex-flow: row nowrap;
   justify-content: space-around;
-  align-items: flex-start;
 }
-.horizpontal-rule{
-  margin:10px;
-  background-color:"#FF5722"
-}
-.row{
-  display: flex;
-  flex-direction: row;
-}
-.commentAdd {
-  padding: 10px;
+
+.posts-grid {
+  width: 960px;
 }

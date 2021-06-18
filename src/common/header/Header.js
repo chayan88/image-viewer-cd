@@ -1,157 +1,130 @@
-import React, {Component} from 'react';
-import './Header.css';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import InputBase from '@material-ui/core/InputBase';
-import {withStyles} from '@material-ui/core/styles';
-import SearchIcon from '@material-ui/icons/Search';
-import IconButton from '@material-ui/core/IconButton';
-import MenuItem from '@material-ui/core/MenuItem';
-import Popover from '@material-ui/core/Popover';
-import { Link } from 'react-router-dom';
-import { Avatar } from '@material-ui/core';
+import React, { Component, Fragment } from "react";
+import { withRouter } from "react-router";
+import { Link } from "react-router-dom";
+import "./Header.css";
+import { withStyles } from "@material-ui/core/styles";
+import Input from "@material-ui/core/Input";
+import Search from "@material-ui/icons/Search";
+import Avatar from "@material-ui/core/Avatar";
+import IconButton from "@material-ui/core/IconButton";
+import Popover from "@material-ui/core/Popover";
+import MenuItem from "@material-ui/core/MenuItem";
+import ProfilePic from "../../assets/profilePic.png";
 
-const styles = theme => ({
-  grow: {
-    flexGrow: 1
-  },
-  search: {
-    position: 'relative',
-    borderRadius: '4px',
-    backgroundColor: '#c0c0c0',
-    marginLeft: 0,
-    width: '300px',
+const classes = (theme) => ({
+  searchContainer: {
+    borderRadius: "4px",
+    backgroundColor: "#c0c0c0",
+    width: "300px",
+    display: "flex",
+    flexFlow: "row nowrap",
+    alignItems: "center",
+    justifyItems: "center",
+    padding: "0 10px",
+    margin: "0 10px",
   },
   searchIcon: {
-    width: theme.spacing.unit * 4,
-    height: '100%',
-    position: 'absolute',
-    pointerEvents: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color:'#000000'
+    width: "30px",
   },
-  inputInput: {
-    paddingTop: theme.spacing.unit,
-    paddingRight: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
-    paddingLeft: theme.spacing.unit * 4,
-    transition: theme.transitions.create('width'),
-    width: '100%',
-    [theme.breakpoints.up('sm')]: {
-      width: 120,
-      '&:focus': {
-        width: 200
-      }
-    }
+  searchBar: {
+    width: "100%",
   },
   avatar: {
-    width: 50,
-    height: 50,
+    width: "30px",
+    height: "30px",
+    margin: "0 10px",
+    border: "1px solid white",
   },
-  appHeader:{
-    backgroundColor:'#263238'
-  },
-  hr:{
-    height:'1.5px',
-    backgroundColor:'#f2f2f2',
-    marginLeft:'5px',
-    marginRight:'5px'
-  }
-})
+});
 
-class Header extends Component{
-
-  constructor(props){
+/* Header Component */
+class Header extends Component {
+  constructor(props) {
     super(props);
     this.state = {
-      anchorEl: null
+      popoverAnchor: null,
     };
   }
 
-  render(){
-    const {classes,screen} = this.props;
-    return (<div>
-        <AppBar className={classes.appHeader}>
-          <Toolbar>
-            { /*   Here, we are displaying logo Image Viewer on all the 3 pages : Login, Home, Profile pages */ }
+  handleAvatarClick = (event) => {
+    this.setState({ popoverAnchor: event.currentTarget });
+  };
 
-            {(screen === "Login" || screen === "Home") && <span className="header-logo">Image Viewer</span>}
-            {(screen === "Profile") && <Link style={{ textDecoration: 'none', color: 'white' }} to="/home"><span className="header-logo">Image Viewer</span></Link>}
-            <div className={classes.grow}/>
+  handlePopoverClose = () => {
+    this.setState({ popoverAnchor: null });
+  };
 
-            { /*   Here, we are checking if the UI page is Home page, then display Search bar */ }
-            {(screen === "Home") &&
-              <div className={classes.search}>
+  /* Click to 'My Account' will take the user to Profile Page */
+  navigateToMyAccount = () => {
+    this.handlePopoverClose();
+    this.props.history.push("/profile");
+  };
+
+  /* Click to 'Logout will take the user back to the Login Page */
+  logoutUser = () => {
+    sessionStorage.removeItem("access-token");
+    this.handlePopoverClose();
+    this.props.history.push("/");
+  };
+
+  /* Render the Header Component */
+  render() {
+    const { classes, location } = this.props;
+    const isUserLoggedIn = sessionStorage.getItem("access-token") !== null;
+    return (
+      <div className="app-header">
+        <Link to="/home">
+          <span className="app-logo">Image Viewer</span>
+        </Link>
+        {isUserLoggedIn && (
+          <div className="menu-container">
+            {location.pathname === "/home" && (
+              <div className={classes.searchContainer}>
                 <div className={classes.searchIcon}>
-                  <SearchIcon />
+                  <Search />
                 </div>
-                <InputBase onChange={(e)=>{this.props.searchHandler(e.target.value)}} placeholder="Search…" classes={{
-                    input: classes.inputInput
-                  }}/>
+                <Input
+                  className={classes.searchBar}
+                  disableUnderline
+                  placeholder="Search..."
+                  onChange={this.props.handleInputChange}
+                />
               </div>
-            }
-
-            { /*   Here, we are checking if the UI page is Home or Profile page, then display Profile icon */ }
-            {(screen === "Home" || screen === "Profile")  &&
-              <div>
-                <IconButton onClick={this.handleClick}>
-                  <Avatar alt="Profile Pic" src="profile.png" className={classes.avatar} style={{border: "1px solid #fff"}}/>
-                </IconButton>
-                <Popover
-                  id="simple-menu"
-                  anchorEl={this.state.anchorEl}
-                  open={Boolean(this.state.anchorEl)}
-                  onClose={this.handleClose}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'left',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'left',
-                  }}>
-                    <div style={{padding:'5px'}}>
-
-                      { /*   If the UI page is Home page, then drop down on the profile icon should display 2 options : 1. My Account 2. Logout */ }
-                      { (screen === "Home") &&
-                        <div>
-                          <MenuItem onClick={this.handleAccount}>My Account</MenuItem>
-                          <div className={classes.hr}/>
-                        </div>
-                      }
-                      <MenuItem onClick={this.handleLogout}>Logout</MenuItem>
-                    </div>
-                </Popover>
+            )}
+            <IconButton size="small" onClick={this.handleAvatarClick}>
+              <Avatar
+                alt="Profile Picture"
+                variant="circular"
+                src={ProfilePic}
+                className={classes.avatar}
+              />
+            </IconButton>
+            <Popover
+              id="avatar-popover"
+              className={classes.popover}
+              open={Boolean(this.state.popoverAnchor)}
+              anchorEl={this.state.popoverAnchor}
+              onClose={this.handlePopoverClose}
+              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+              transformOrigin={{ vertical: "top", horizontal: "left" }}
+            >
+              <div className="popover-menu">
+                {location.pathname === "/home" && (
+                  <Fragment>
+                    <MenuItem onClick={this.navigateToMyAccount}>
+                      My Account
+                    </MenuItem>
+                    <hr className="popover-menu-divider" />
+                  </Fragment>
+                )}
+                <MenuItem onClick={this.logoutUser}>Logout</MenuItem>
               </div>
-            }
-          </Toolbar>
-        </AppBar>
-    </div>)
-  }
-
-  handleClick = (event) =>{
-    this.setState({
-      anchorEl: event.currentTarget
-    })
-  }
-
-  handleAccount = ()=>{
-    // Perform navigate to Profile page by clicking on My Account dropdown action
-    this.props.handleAccount();
-    this.handleClose();
-  }
-
-  handleLogout = ()=>{
-    // Perform logout operation
-    this.props.handleLogout();
-    this.handleClose();
-  }
-
-  handleClose = () =>{
-    this.setState({ anchorEl: null });
+            </Popover>
+          </div>
+        )}
+      </div>
+    );
   }
 }
 
-export default withStyles(styles)(Header)
+export default withRouter(withStyles(classes)(Header));
